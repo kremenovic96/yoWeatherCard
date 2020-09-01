@@ -1,0 +1,29 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "cross-env NODE_ENV=test jest --verbose --runInBand",
+    "start": "cross-env NODE_ENV=production node index.js",
+    "watch": "cross-env NODE_ENV=development nodemon index.js",
+    "lint": "eslint ."
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.20.0",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "xml-js": "^1.6.11"
+  },
+  "devDependencies": {
+    "cross-env": "^6.0.3",
+    "eslint": "^6.7.1",
+    "jest": "^24.9.0",
+    "nodemon": "^2.0.1",
+    "supertest": "^4.0.2"
+  }
+}
