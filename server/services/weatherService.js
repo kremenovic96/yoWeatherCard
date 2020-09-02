@@ -42,6 +42,41 @@ const getWeekWeatherData = async (lat, lon) => {
     }
 }
 
+/**
+ * 
+ * @param {*} date correct Date obj
+ * @returns promise of db response
+ */
+const getWeatherDataForGivenDate = async (date, lat, lon) => {
+    return WeatherData.aggregate([
+        {
+            "$match": {
+                "$and":[
+                    {"location.coordinates.0": { "$eq": lon }},
+                    {"location.coordinates.1": { "$eq": lat }}
+                ]
+                
+            }
+        },
+        { "$unwind": "$timeseries" },
+        {
+            "$project": {
+                "date_diff": { "$abs": { "$subtract": ["$timeseries.time", date] } },
+                "time": "$timeseries.time",
+                "data": "$timeseries.data",
+            }
+        },
+        { "$sort": { "date_diff": 1 } },
+        {
+            "$project": {
+                "time": "$time",
+                "data": "$data",
+            }
+        },
+        { "$limit": 1 }
+    ]);
+}
+
 const getCachedWeatherData = async (lat, lon) => {
     return WeatherData.findOne({ 'location.type': { $eq: 'Point' }, 'location.coordinates.0': { $eq: lon }, 'location.coordinates.1': { $eq: lat } });
 }
@@ -61,5 +96,6 @@ const truncateWeatherData = (weatherJson) => {
 
 module.exports = {
     getTodayWeatherData,
-    getWeekWeatherData
+    getWeekWeatherData,
+    getWeatherDataForGivenDate
 }
