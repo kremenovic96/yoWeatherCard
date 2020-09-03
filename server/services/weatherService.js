@@ -8,19 +8,19 @@ const getTodayWeatherData = (lat, lon) => {
 }
 
 const getWeekWeatherData = async (lat, lon) => {
-    const cachedWeatherData = await getCachedWeatherData(lat, lon);
+    const cachedWeatherData = await getCompleteCachedWeatherData(lat, lon);
     if (cachedWeatherData) {
         console.log('there is cache')
         if (new Date(cachedWeatherData.expires).getTime() < new Date().getTime()) {
             const apiResponse = await externalWeatherApi.getCompleteWeatherData(lat, lon, cachedWeatherData.lastModified);
             if (apiResponse.status === 300) {
-                console.log('300 status')
+                console.log('cache does not need an update')
 
                 return cachedWeatherData;
             }
             else if (apiResponse.status === 200) {
-                const updatedCache = await WeatherData.findByIdAndUpdate(cachedWeatherData._id, apiResponse.data);
-                console.log('200 status')
+                const updatedCache = await WeatherData.findByIdAndUpdate(cachedWeatherData._id, truncateWeatherData({ ...apiResponse.data, expires: apiResponse.headers.expires, lastModified: apiResponse.headers['last-modified'] }), { useFindAndModify: false, new: true });
+                console.log('cache updated')
 
                 return updatedCache;
             }
@@ -51,11 +51,11 @@ const getWeatherDataForGivenDate = async (date, lat, lon) => {
     return WeatherData.aggregate([
         {
             "$match": {
-                "$and":[
-                    {"location.coordinates.0": { "$eq": lon }},
-                    {"location.coordinates.1": { "$eq": lat }}
+                "$and": [
+                    { "location.coordinates.0": { "$eq": Number(lon) } },
+                    { "location.coordinates.1": { "$eq": Number(lat) } }
                 ]
-                
+
             }
         },
         { "$unwind": "$timeseries" },
@@ -77,7 +77,7 @@ const getWeatherDataForGivenDate = async (date, lat, lon) => {
     ]);
 }
 
-const getCachedWeatherData = async (lat, lon) => {
+const getCompleteCachedWeatherData = async (lat, lon) => {
     return WeatherData.findOne({ 'location.type': { $eq: 'Point' }, 'location.coordinates.0': { $eq: lon }, 'location.coordinates.1': { $eq: lat } });
 }
 
