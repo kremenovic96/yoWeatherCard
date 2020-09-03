@@ -1,4 +1,4 @@
-import axios from 'axios';
+const axios = require('axios');
 
 
 const get = (url) => {
@@ -6,10 +6,10 @@ const get = (url) => {
 }
 
 const getWithQueryParams = (url, queryParams) => {
-    return axios.get(`${url}`, { params: queryParams });
+    return axios.get(`${url}/`, { params: queryParams });
 };
 
-export default {
+module.exports = {
     get,
     getWithQueryParams
 }
