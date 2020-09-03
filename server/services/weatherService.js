@@ -58,12 +58,20 @@ const getWeatherDataForGivenDate = async (date, lat, lon) => {
 
             }
         },
+        {
+            "$addFields": {
+                "timeseries.exx": "$expires"
+            }
+        },
         { "$unwind": "$timeseries" },
         {
             "$project": {
                 "date_diff": { "$abs": { "$subtract": ["$timeseries.time", date] } },
                 "time": "$timeseries.time",
                 "data": "$timeseries.data",
+                "expires": "$$ROOT.expires",
+                "lastModified": "$$ROOT.lastModified"
+
             }
         },
         { "$sort": { "date_diff": 1 } },
@@ -71,6 +79,8 @@ const getWeatherDataForGivenDate = async (date, lat, lon) => {
             "$project": {
                 "time": "$time",
                 "data": "$data",
+                "expires": "$expires",
+                "lastModified": "$lastModified"
             }
         },
         { "$limit": 1 }
