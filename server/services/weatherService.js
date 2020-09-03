@@ -2,43 +2,73 @@
 const WeatherData = require('../models/weatherData');
 const externalWeatherApi = require('../weatherService/externalWeatherApi');
 const moment = require('moment');
+const { forwardGeoCode, reverseGeoCode } = require('./geocodingService');
 
 const getTodayWeatherData = (lat, lon) => {
     return externalWeatherApi.getBasicTodayWeatherData(req.query.lat, req.query.lon);
 }
 
-const getWeekWeatherData = async (lat, lon) => {
-    const cachedWeatherData = await getCompleteCachedWeatherData(lat, lon);
+const isCacheExpired = (cache) => {
+    return new Date(cache.expires).getTime() < new Date().getTime();
+}
+
+const getWeatherDataForDate = async ({ geolocation, address }, date) => {
+
+    const { lat, lon, adminArea5 } = geolocation || await forwardGeoCode(address);
+
+    let cachedWeatherData = await getCachedWeatherDataForGivenDate(date, lat, lon);
+    cachedWeatherData = cachedWeatherData[0];
+
     if (cachedWeatherData) {
         console.log('there is cache')
-        if (new Date(cachedWeatherData.expires).getTime() < new Date().getTime()) {
+        if (isCacheExpired(cachedWeatherData)) {
+            //get newest data
+            console.log(new Date(cachedWeatherData.lastModified))
             const apiResponse = await externalWeatherApi.getCompleteWeatherData(lat, lon, cachedWeatherData.lastModified);
+
+            //newest data is not different from cached one, so use cached version
             if (apiResponse.status === 300) {
                 console.log('cache does not need an update')
-
                 return cachedWeatherData;
             }
-            else if (apiResponse.status === 200) {
-                const updatedCache = await WeatherData.findByIdAndUpdate(cachedWeatherData._id, truncateWeatherData({ ...apiResponse.data, expires: apiResponse.headers.expires, lastModified: apiResponse.headers['last-modified'] }), { useFindAndModify: false, new: true });
-                console.log('cache updated')
 
-                return updatedCache;
+            //there is newer data that is different from cached one, update cache
+            else if (apiResponse.status === 200) {
+                const updatedCache = await WeatherData.findByIdAndUpdate(cachedWeatherData._id, truncateWeatherData({ ...apiResponse.data, coordinates: [lon, lat], expires: apiResponse.headers.expires, name: cachedWeatherData.name, lastModified: apiResponse.headers['last-modified'] }), { useFindAndModify: false, new: true });
+                console.log('cache updated')
+                return {
+                    _id: updatedCache.timeseries[0]._id,
+                    time: updatedCache.timeseries[0].time,
+                    name: updatedCache.name,
+                    data: updatedCache.timeseries[0].data,
+                    expires: updatedCache.expires,
+                    lastModified: updatedCache.lastModified,
+                };
             }
             else {
                 throw Error('Can not connect to external weather api');
-
             }
         }
-        //cache has not expired yet
+        //cache has not expired yet so return it
         else {
             return cachedWeatherData;
         }
     }
     else {
-        console.log('no cache found')
+        console.log('no cache')
         const apiResponse = await externalWeatherApi.getCompleteWeatherData(lat, lon);
-        const newCache = new WeatherData(truncateWeatherData({ ...apiResponse.data, expires: apiResponse.headers.expires, lastModified: apiResponse.headers['last-modified'] }));
-        return await newCache.save();
+        const locationName = adminArea5 || await reverseGeoCode(lat, lon);
+        console.log(locationName, '11')
+        const newCache = await new WeatherData(truncateWeatherData({ ...apiResponse.data, coordinates:[lon, lat], name: locationName, expires: apiResponse.headers.expires, lastModified: apiResponse.headers['last-modified'] })).save();
+     console.log(newCache.location, 'locc')
+        return {
+            _id: newCache.timeseries[0]._id,
+            time: newCache.timeseries[0].time,
+            data: newCache.timeseries[0].data,
+            name: newCache.name,
+            expires: newCache.expires,
+            lastModified: newCache.lastModified,
+        };
     }
 }
 
@@ -47,7 +77,7 @@ const getWeekWeatherData = async (lat, lon) => {
  * @param {*} date correct Date obj
  * @returns promise of db response
  */
-const getWeatherDataForGivenDate = async (date, lat, lon) => {
+const getCachedWeatherDataForGivenDate = async (date, lat, lon) => {
     return WeatherData.aggregate([
         {
             "$match": {
@@ -58,11 +88,6 @@ const getWeatherDataForGivenDate = async (date, lat, lon) => {
 
             }
         },
-        {
-            "$addFields": {
-                "timeseries.exx": "$expires"
-            }
-        },
         { "$unwind": "$timeseries" },
         {
             "$project": {
@@ -70,7 +95,8 @@ const getWeatherDataForGivenDate = async (date, lat, lon) => {
                 "time": "$timeseries.time",
                 "data": "$timeseries.data",
                 "expires": "$$ROOT.expires",
-                "lastModified": "$$ROOT.lastModified"
+                "lastModified": "$$ROOT.lastModified",
+                "name": "$$ROOT.name"
 
             }
         },
@@ -80,7 +106,8 @@ const getWeatherDataForGivenDate = async (date, lat, lon) => {
                 "time": "$time",
                 "data": "$data",
                 "expires": "$expires",
-                "lastModified": "$lastModified"
+                "lastModified": "$lastModified",
+                "name": "$name"
             }
         },
         { "$limit": 1 }
@@ -95,9 +122,11 @@ const truncateWeatherData = (weatherJson) => {
     const truncatedData = {
         expires: weatherJson.expires,
         lastModified: weatherJson.lastModified,
+        name: weatherJson.name,
         location: {
             type: 'Point', //weatherJson.geometry.type
-            coordinates: weatherJson.geometry.coordinates
+            // coordinates: weatherJson.geometry.coordinates
+            coordinates: weatherJson.coordinates
         },
         timeseries: [...weatherJson.properties.timeseries],
     }
@@ -105,7 +134,5 @@ const truncateWeatherData = (weatherJson) => {
 }
 
 module.exports = {
-    getTodayWeatherData,
-    getWeekWeatherData,
-    getWeatherDataForGivenDate
+    getWeatherDataForDate
 }

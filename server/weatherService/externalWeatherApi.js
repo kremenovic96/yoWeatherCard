@@ -12,7 +12,6 @@ const getHeaders = () => {
 }
 
 const getCompleteWeatherData = (lat, lon, ifModifiedSinceHeaderVal) => {
-    //TODO: Should i set custom user-agent header?
     const headers = { ...getHeaders().headers };
     if (ifModifiedSinceHeaderVal) {
         headers['If-Modified-Since'] = ifModifiedSinceHeaderVal

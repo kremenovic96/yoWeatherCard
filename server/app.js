@@ -18,8 +18,14 @@ mongoose.connect(config.MONGODB_URI, { useNewUrlParser: true })
 app.use(cors());
 app.use(bodyParser.json());
 
+app.use(express.static('build'));
+
 app.use('/api/weather', weatherRouter);
 app.use('/api/geocoding', geocodingRouter);
 app.use('/image', express.static('images'));
+
+app.use('*', (req, res) => {
+    res.sendFile(path.join(__dirname + '/build/index.html'));
+});
 
 module.exports = app;
