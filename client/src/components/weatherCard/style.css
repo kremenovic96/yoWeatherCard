@@ -3,38 +3,10 @@
     border-radius: 50px;
 }
 
-.sun-col {
-    /* position: relative; */
-}
- .weather-indicator {
-    /* margin-left: -40px; */
-    /* left: -25px;
-    bottom: 0;
-    position: absolute; */
-}
-
-/* 
-.high-cloud-img {
-    position: absolute;
-    top: 35px;
-    width: 100px;
-
-}
-
-.medium-cloud-img {
-    position: absolute;
-    top: 55px;
-    width: 100px;
-
-}
-
-.low-cloud-img {
-    position: absolute;
-    top: 50%;
-    width: 100px;
-    opacity: 0.3;
-} */
-
  .week-forecast-item{
     flex: 0 0 14.28%;
+}
+
+.week-forecast {
+    overflow-x: auto
 }

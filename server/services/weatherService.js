@@ -23,7 +23,6 @@ const getWeatherDataForDate = async ({ geolocation, address }, date) => {
         console.log('there is cache')
         if (isCacheExpired(cachedWeatherData)) {
             //get newest data
-            console.log(new Date(cachedWeatherData.lastModified))
             const apiResponse = await externalWeatherApi.getCompleteWeatherData(lat, lon, cachedWeatherData.lastModified);
 
             //newest data is not different from cached one, so use cached version
@@ -43,6 +42,7 @@ const getWeatherDataForDate = async ({ geolocation, address }, date) => {
                     data: updatedCache.timeseries[0].data,
                     expires: updatedCache.expires,
                     lastModified: updatedCache.lastModified,
+                    weekSummary: updatedCache.weekSummary
                 };
             }
             else {
@@ -58,9 +58,7 @@ const getWeatherDataForDate = async ({ geolocation, address }, date) => {
         console.log('no cache')
         const apiResponse = await externalWeatherApi.getCompleteWeatherData(lat, lon);
         const locationName = adminArea5 || await reverseGeoCode(lat, lon);
-        console.log(locationName, '11')
-        const newCache = await new WeatherData(truncateWeatherData({ ...apiResponse.data, coordinates:[lon, lat], name: locationName, expires: apiResponse.headers.expires, lastModified: apiResponse.headers['last-modified'] })).save();
-     console.log(newCache.location, 'locc')
+        const newCache = await new WeatherData(truncateWeatherData({ ...apiResponse.data, coordinates: [lon, lat], name: locationName, expires: apiResponse.headers.expires, lastModified: apiResponse.headers['last-modified'] })).save();
         return {
             _id: newCache.timeseries[0]._id,
             time: newCache.timeseries[0].time,
@@ -68,6 +66,7 @@ const getWeatherDataForDate = async ({ geolocation, address }, date) => {
             name: newCache.name,
             expires: newCache.expires,
             lastModified: newCache.lastModified,
+            weekSummary: newCache.weekSummary
         };
     }
 }
@@ -96,7 +95,8 @@ const getCachedWeatherDataForGivenDate = async (date, lat, lon) => {
                 "data": "$timeseries.data",
                 "expires": "$$ROOT.expires",
                 "lastModified": "$$ROOT.lastModified",
-                "name": "$$ROOT.name"
+                "name": "$$ROOT.name",
+                "weekSummary": "$$ROOT.weekSummary"
 
             }
         },
@@ -107,7 +107,8 @@ const getCachedWeatherDataForGivenDate = async (date, lat, lon) => {
                 "data": "$data",
                 "expires": "$expires",
                 "lastModified": "$lastModified",
-                "name": "$name"
+                "name": "$name",
+                "weekSummary": "$weekSummary"
             }
         },
         { "$limit": 1 }
@@ -128,11 +129,45 @@ const truncateWeatherData = (weatherJson) => {
             // coordinates: weatherJson.geometry.coordinates
             coordinates: weatherJson.coordinates
         },
-        timeseries: [...weatherJson.properties.timeseries],
+        timeseries: weatherJson.properties.timeseries,
+        weekSummary: { timeseries: extractWeekSummary(weatherJson.properties.timeseries) }
     }
     return truncatedData;
 }
 
+
+const extractWeekSummary = (timeseries) => {
+    const weekSummary = extractOneTimeSeriePerDay(timeseries);
+    return weekSummary;
+}
+
+const extractOneTimeSeriePerDay = (timeseries) => {
+    const mymoment = moment(new Date());
+    const onePerDay = [];
+
+    const dataLen = timeseries.length;
+    let addedCount = 0;
+    for (let i = 0; i < dataLen; i++) {
+        const timeserie = timeseries[i];
+        if (isSameWeekDay(moment(timeserie.time), mymoment) && isDay(moment(timeserie.time))) {
+            mymoment.add(1, 'days');
+            onePerDay.push({ time: timeserie.time, details: timeserie.data.instant.details, symbol_code: timeserie.data.next_6_hours.summary.symbol_code, dayInWeek: moment(timeserie.time).get('d') });
+            addedCount += 1;
+        }
+        if (addedCount === 7) break;
+    }
+    return onePerDay;
+}
+
+const isSameWeekDay = (m1, m2) => {
+    return m1.get('d') === m2.get('d');
+}
+
+const isDay = (momentTime) => {
+    return momentTime.get('h') < 20 && momentTime.get('h') > 4;
+}
+
+
 module.exports = {
-    getWeatherDataForDate
+    getWeatherDataForDate,
 }

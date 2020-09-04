@@ -13,26 +13,29 @@ const App = () => {
 
   useEffect(() => {
     if (originLocation) {
-      weatherService.getWeatherDataForDate(new Date(), originLocation.lat, originLocation.lon)
+      weatherService
+        .getWeatherData(new Date(), { params: { ...originLocation } })
         .then(res => setOriginWeatherData(res.data));
     }
   }, [originLocation]);
 
   useEffect(() => {
     if (destinationLocation) {
-
+      weatherService
+        .getWeatherData(new Date(), { params: { ...destinationLocation } })
+        .then(res => setDestinationWeatherData(res.data));
     }
   }, [destinationLocation]);
 
   return (
     <div className='container'>
-      <div className='row mt-4'>
+      <div className='row mt-4 '>
         <div className='col-md-6'>
           <WeatherCard weatherData={originWeatherData} />
           <SearchInput setSearchLocation={setOriginLocation} />
         </div>
-        <div className='col-md-6'>
-          <WeatherCard />
+        <div className='col-md-6 '>
+          <WeatherCard weatherData={destinationWeatherData} />
           <SearchInput setSearchLocation={setDestinationLocation} />
         </div>
       </div>

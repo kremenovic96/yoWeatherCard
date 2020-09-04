@@ -4,22 +4,6 @@ const weatherService = require('../services/weatherService');
 
 weatherRouter.get('', async (req, res, next) => {
 
-    //TODO: Check for lat and lon params
-
-    // if (req.query.basicTodayWeatherData) {
-    //     return weatherService.getTodayWeatherData(req.query.lat, req.query.lon)
-    //         .then(resp =>
-    //             res.send(resp)
-    //         )
-    // }
-    // else if (req.query.weeklyWeatherData) {
-    //     const a = await weatherService.getWeatherDataForDate(req.query.lat, req.query.lon, new Date())
-    //     console.log(a, 'aaaaaaaaaaaaaaaaaaaaa')
-    //     // return weatherService.getWeekWeatherData(req.query.lat, req.query.lon)
-    //     //     .then(resp => {
-    //     //         return res.status(200).json(resp)
-    //     //     })
-    // }
     if (req.query.date && req.query.lat && req.query.lon) {
         return weatherService
             .getWeatherDataForDate({ geolocation: { lat: req.query.lat, lon: req.query.lon } }, new Date(req.query.date))

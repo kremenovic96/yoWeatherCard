@@ -1,5 +1,4 @@
 const axios = require('axios');
-const apiService = require('../../client/src/services/apiService');
 
 //Using complete instead of compact because compact does not include dew point data
 const url = 'https://api.met.no/weatherapi/locationforecast/2.0/complete';

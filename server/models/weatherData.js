@@ -56,7 +56,29 @@ const weatherData = new mongoose.Schema({
             }
 
         }
-    ]
+    ],
+    weekSummary: {
+        timeseries: [
+            {
+                time: {
+                    type: Date,
+                    required: true
+                },
+                symbol_code: {
+                    type: String,
+                    required: true,
+                },
+                dayInWeek: {
+                    type: Number,
+                    required: true
+                },
+                details : {
+                    type: mongoose.Schema.Types.Mixed,
+                    required: true
+                }
+            }
+        ]
+    }
 })
 
 weatherData.set('toJSON', {
