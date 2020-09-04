@@ -15,7 +15,8 @@ const App = () => {
     if (originLocation) {
       weatherService
         .getWeatherData(new Date(), { params: { ...originLocation } })
-        .then(res => setOriginWeatherData(res.data));
+        .then(res => setOriginWeatherData(res.data))
+        .catch(err => alert("Error happened"));
     }
   }, [originLocation]);
 
@@ -23,7 +24,9 @@ const App = () => {
     if (destinationLocation) {
       weatherService
         .getWeatherData(new Date(), { params: { ...destinationLocation } })
-        .then(res => setDestinationWeatherData(res.data));
+        .then(res => setDestinationWeatherData(res.data))
+        .catch(err => alert("Error happened"));
+      ;
     }
   }, [destinationLocation]);
 

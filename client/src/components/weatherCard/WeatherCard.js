@@ -104,7 +104,7 @@ const WeatherCard = ({ weatherData, weekSummary }) => {
                     </div>
                 </div>
             </div>
-                <small class="text-muted">Week forecast is taken at random time of day</small>
+                <small className="text-muted">Week forecast is taken at random time of each day</small>
         </>
     );
 };
